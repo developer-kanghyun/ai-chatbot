@@ -4,9 +4,9 @@ services:
     container_name: chatbot-db
     restart: always
     environment:
-      POSTGRES_DB: chatbot
-      POSTGRES_USER: chatbot
-      POSTGRES_PASSWORD: password
+      POSTGRES_DB: chatbotdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "5432:5432"
     volumes:

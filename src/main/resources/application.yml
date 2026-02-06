@@ -1,18 +1,19 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/chatbot
-    username: chatbot
+    url: jdbc:postgresql://localhost:5432/chatbotdb
+    username: postgres
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   
   sql:
     init:
+      mode: always # PostgreSQL 스키마 스크립트 실행 강제
       schema-locations: classpath:schema.sql
       separator: ;; # PL/pgSQL 블록 처리를 위해 구분자 변경
   
   jpa:
     hibernate:
-      ddl-auto: validate # schema.sql이 진실이므로 DB 구조 검증만 수행
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
