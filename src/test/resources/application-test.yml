@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/chatbotdb
+    username: postgres
+    password: ${DB_PASSWORD}
+  
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  base-url: "https://api.openai.com"
+  model: gpt-4o-mini
+  timeout-ms: 30000
