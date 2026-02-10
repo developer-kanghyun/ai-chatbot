@@ -31,7 +31,10 @@ public class ChatService {
     @Transactional
     public ChatCompletionResponse createChatCompletion(ChatCompletionRequest request) {
         // 1. Conversation 확인/생성
-        Conversation conversation = getOrCreateConversation(request.getConversationId(), 1L, request.getMessage());
+        Long conversationId = request.getConversationId() != null && !request.getConversationId().isBlank()
+                ? Long.parseLong(request.getConversationId())
+                : null;
+        Conversation conversation = getOrCreateConversation(conversationId, 1L, request.getMessage());
 
         // 2. User 메시지 저장
         Message userMessage = new Message(conversation, Message.Role.user, request.getMessage());

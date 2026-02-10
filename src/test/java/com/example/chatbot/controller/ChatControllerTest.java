@@ -13,7 +13,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -56,7 +56,7 @@ class ChatControllerTest {
                         .id("mock-message-id")
                         .role("assistant")
                         .content("Mock assistant response")
-                        .createdAt(Instant.now())
+                        .createdAt(LocalDateTime.now())
                         .build())
                 .build();
 
