@@ -1,20 +1,22 @@
 package com.example.chatbot.service;
 
-import com.example.chatbot.domain.Conversation;
-import com.example.chatbot.domain.Message;
-import com.example.chatbot.domain.Role;
+import com.example.chatbot.conversation.repository.ConversationRepository;
+import com.example.chatbot.conversation.repository.MessageRepository;
 import com.example.chatbot.dto.request.ChatCompletionRequest;
 import com.example.chatbot.dto.response.ChatCompletionResponse;
-import com.example.chatbot.repository.chat.ConversationRepository;
-import com.example.chatbot.repository.chat.MessageRepository;
+import com.example.chatbot.entity.Conversation;
+import com.example.chatbot.entity.Message;
+import com.example.chatbot.entity.User;
+import com.example.chatbot.global.error.AppException;
+import com.example.chatbot.global.error.ErrorCode;
+import com.example.chatbot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -23,97 +25,67 @@ public class ChatService {
 
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
+    private final UserRepository userRepository;
     private final OpenAiService openAiService;
 
+    @Transactional
     public ChatCompletionResponse createChatCompletion(ChatCompletionRequest request) {
         // 1. Conversation 확인/생성
-        Conversation conversation = getOrCreateConversation(request.getConversationId());
+        Conversation conversation = getOrCreateConversation(request.getConversationId(), 1L, request.getMessage());
 
-        // 2. 기존 대화 내역 조회 (히스토리)
-        List<Message> history = messageRepository.findByConversationId(conversation.getId());
+        // 2. User 메시지 저장
+        Message userMessage = new Message(conversation, Message.Role.user, request.getMessage());
+        messageRepository.save(userMessage);
 
-        // 3. User 메시지 저장
-        Message userMessage = saveUserMessage(conversation.getId(), request.getMessage());
+        // 3. 기존 대화 컨텍스트 조회 (최근 20개)
+        List<Message> contextMessages = messageRepository.findByConversation_IdOrderByCreatedAtAsc(conversation.getId());
+        if (contextMessages.size() > 20) {
+            contextMessages = contextMessages.subList(contextMessages.size() - 20, contextMessages.size());
+        }
 
         // 4. OpenAI 호출용 메시지 리스트 구성
-        List<com.example.chatbot.dto.openai.Message> openAiMessages = buildOpenAiMessages(history, userMessage);
-
-        // 5. OpenAI 호출 (String만 반환)
-        String assistantContent = openAiService.createChatCompletion(openAiMessages);
-
-        // 6. Assistant 메시지 저장
-        Message assistantMessage = saveAssistantMessage(conversation.getId(), assistantContent);
-
-        // 7. 응답 DTO 생성
-        return buildResponse(conversation.getId(), assistantMessage);
-    }
-
-    private Conversation getOrCreateConversation(String conversationId) {
-        if (conversationId == null || conversationId.isBlank()) {
-            // 신규 대화 생성
-            Instant now = Instant.now();
-            Conversation newConversation = Conversation.builder()
-                    .id(UUID.randomUUID().toString())
-                    .createdAt(now)
-                    .updatedAt(now)
-                    .title(null) // Day2에서는 null 고정
-                    .build();
-            return conversationRepository.save(newConversation);
-        } else {
-            // 기존 대화 조회
-            return conversationRepository.findById(conversationId)
-                    .orElseThrow(() -> new IllegalArgumentException("대화를 찾을 수 없습니다: " + conversationId));
-        }
-    }
-
-    private Message saveUserMessage(String conversationId, String content) {
-        Message userMessage = Message.builder()
-                .id(UUID.randomUUID().toString())
-                .conversationId(conversationId)
-                .role(Role.USER)
-                .content(content)
-                .createdAt(Instant.now())
-                .build();
-        return messageRepository.save(userMessage);
-    }
-
-    private Message saveAssistantMessage(String conversationId, String content) {
-        Message assistantMessage = Message.builder()
-                .id(UUID.randomUUID().toString())
-                .conversationId(conversationId)
-                .role(Role.ASSISTANT)
-                .content(content)
-                .createdAt(Instant.now())
-                .build();
-        return messageRepository.save(assistantMessage);
-    }
-
-    private List<com.example.chatbot.dto.openai.Message> buildOpenAiMessages(List<Message> history, Message newUserMessage) {
-        List<com.example.chatbot.dto.openai.Message> messages = new ArrayList<>();
-        
-        // 기존 히스토리 추가
-        for (Message msg : history) {
-            messages.add(new com.example.chatbot.dto.openai.Message(
-                    msg.getRole().name().toLowerCase(), 
+        List<com.example.chatbot.dto.openai.Message> openAiMessages = new ArrayList<>();
+        for (Message msg : contextMessages) {
+            openAiMessages.add(new com.example.chatbot.dto.openai.Message(
+                    msg.getRole().name(),
                     msg.getContent()
             ));
         }
-        
-        // 새 유저 메시지 추가
-        messages.add(new com.example.chatbot.dto.openai.Message("user", newUserMessage.getContent()));
-        
-        return messages;
-    }
 
-    private ChatCompletionResponse buildResponse(String conversationId, Message assistantMessage) {
+        // 5. OpenAI 호출 (String 반환)
+        String assistantContent = openAiService.createChatCompletion(openAiMessages);
+
+        // 6. Assistant 메시지 저장
+        Message assistantMessage = new Message(conversation, Message.Role.assistant, assistantContent);
+        messageRepository.save(assistantMessage);
+
+        log.info("ChatCompletion 응답: conversationId={}, messageId={}", conversation.getId(), assistantMessage.getId());
+
+        // 7. 응답 DTO 생성
         return ChatCompletionResponse.builder()
-                .conversationId(conversationId)
+                .conversationId(String.valueOf(conversation.getId()))
                 .message(ChatCompletionResponse.MessageDto.builder()
-                        .id(assistantMessage.getId())
-                        .role(assistantMessage.getRole().name().toLowerCase())
+                        .id(String.valueOf(assistantMessage.getId()))
+                        .role(assistantMessage.getRole().name())
                         .content(assistantMessage.getContent())
                         .createdAt(assistantMessage.getCreatedAt())
                         .build())
                 .build();
+    }
+
+    private Conversation getOrCreateConversation(Long conversationId, Long userId, String firstMessage) {
+        if (conversationId == null) {
+            // 신규 대화 생성
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+
+            String title = firstMessage.length() > 50 ? firstMessage.substring(0, 50) : firstMessage;
+            Conversation newConversation = new Conversation(user, title);
+            return conversationRepository.save(newConversation);
+        } else {
+            // 기존 대화 조회
+            return conversationRepository.findByIdAndUser_Id(conversationId, userId)
+                    .orElseThrow(() -> new AppException(ErrorCode.CONVERSATION_NOT_FOUND));
+        }
     }
 }
