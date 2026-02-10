@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Getter
 @Builder
@@ -21,6 +21,6 @@ public class ChatCompletionResponse {
         private String id;
         private String role;
         private String content;
-        private Instant createdAt;
+        private LocalDateTime createdAt;
     }
 }
