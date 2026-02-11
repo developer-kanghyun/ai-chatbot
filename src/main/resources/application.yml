@@ -35,3 +35,14 @@ openai:
   base-url: "https://api.openai.com"
   model: gpt-4o-mini
   timeout-ms: 30000 # 30초 (기본값)
+
+spring.data.redis:
+  host: localhost
+  port: 6379
+
+app:
+  rate-limit:
+    enabled: true
+    limit: 3            # 윈도우당 최대 요청 수 (테스트용)
+    window-seconds: 60   # 고정 윈도우 크기 (초)
+    key-prefix: rate_limit
