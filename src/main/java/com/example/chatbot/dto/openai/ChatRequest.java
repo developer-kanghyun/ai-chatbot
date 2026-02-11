@@ -9,4 +9,6 @@ import java.util.List;
 public class ChatRequest {
     private String model;
     private List<Message> messages;
+    @Builder.Default
+    private boolean stream = false;
 }
