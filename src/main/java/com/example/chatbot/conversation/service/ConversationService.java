@@ -63,4 +63,28 @@ public class ConversationService {
                 .map(MessageResponse::from)
                 .toList();
     }
+    // 대화 삭제
+    @Transactional
+    public void deleteConversation(Long conversationId) {
+        Long userId = 1L;
+        Conversation conversation = conversationRepository
+                .findByIdAndUser_Id(conversationId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.CONVERSATION_NOT_FOUND));
+
+        conversationRepository.delete(conversation);
+        log.info("대화 삭제 완료: conversationId={}, userId={}", conversationId, userId);
+    }
+
+    // 대화 제목 수정
+    @Transactional
+    public ConversationListResponse updateConversationTitle(Long conversationId, String title) {
+        Long userId = 1L;
+        Conversation conversation = conversationRepository
+                .findByIdAndUser_Id(conversationId, userId)
+                .orElseThrow(() -> new AppException(ErrorCode.CONVERSATION_NOT_FOUND));
+
+        conversation.setTitle(title);
+        log.info("대화 제목 수정: conversationId={}, title={}", conversationId, title);
+        return ConversationListResponse.from(List.of(conversation)).get(0);
+    }
 }

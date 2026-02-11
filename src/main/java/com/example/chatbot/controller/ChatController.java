@@ -51,4 +51,15 @@ public class ChatController {
 
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
+
+    @PostMapping(value = "/completions/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    @Operation(summary = "채팅 스트리밍", description = "AI 응답을 SSE(Server-Sent Events)로 스트리밍합니다.")
+    public reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent<String>> streamChatCompletion(
+            @Valid @RequestBody ChatCompletionRequest request) {
+
+        log.info("ChatCompletion(Stream) 요청: message='{}', conversationId={}",
+                request.getMessage(), request.getConversationId());
+
+        return chatService.createChatCompletionStream(request);
+    }
 }
