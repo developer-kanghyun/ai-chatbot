@@ -7,44 +7,33 @@ services:
     healthCheckPath: /health
     numInstances: 1
     envVars:
-      - key: PORT
-        value: "8080"
       - key: SPRING_PROFILES_ACTIVE
         value: "prod"
-      # 가장 확실한 방법: Render 비밀 변수를 JDBC 형식으로 직접 매핑
-      - key: SPRING_DATASOURCE_URL
-        fromDatabase:
-          name: chatbot-db
-          property: connectionString
-      # connectionString은 'postgres://'로 시작하므로, 애플리케이션에서 이를 처리하도록 유도하거나 
-      # 명시적으로 개별 필드를 다시 한번 정확히 매핑 (오차 제거)
+
+      # DB 정보를 분해하여 주입 (Blueprint Spec 준수)
+      - key: SPRING_DATASOURCE_HOST
+        fromDatabase: { name: chatbot-db, property: host }
+      - key: SPRING_DATASOURCE_PORT
+        fromDatabase: { name: chatbot-db, property: port }
+      - key: SPRING_DATASOURCE_DATABASE
+        fromDatabase: { name: chatbot-db, property: database }
       - key: SPRING_DATASOURCE_USERNAME
-        fromDatabase:
-          name: chatbot-db
-          property: user
+        fromDatabase: { name: chatbot-db, property: user }
       - key: SPRING_DATASOURCE_PASSWORD
-        fromDatabase:
-          name: chatbot-db
-          property: password
-      # Redis 정보
-      - key: SPRING_DATA_REDIS_HOST
-        fromService:
-          type: redis
-          name: chatbot-redis
-          property: host
-      - key: SPRING_DATA_REDIS_PORT
-        fromService:
-          type: redis
-          name: chatbot-redis
-          property: port
+        fromDatabase: { name: chatbot-db, property: password }
+
+      # Key Value URL로 주입
+      - key: SPRING_DATA_REDIS_URL
+        fromService: { type: keyvalue, name: chatbot-redis, property: connectionString }
+
       - key: OPENAI_API_KEY
         sync: false
 
-  - type: redis
+  - type: keyvalue
     name: chatbot-redis
     region: singapore
     plan: free
-    ipAllowList: []
+    ipAllowList: [] # Key Value 필수 필드
 
 databases:
   - name: chatbot-db
