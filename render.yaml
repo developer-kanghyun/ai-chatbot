@@ -2,7 +2,7 @@ services:
   - type: web
     name: ai-chatbot
     env: docker
-    region: singapore # 기존 서비스 리전으로 원복
+    region: singapore # 이미 생성된 리전(싱가포르)에 맞춤
     plan: free
     healthCheckPath: /health
     numInstances: 1
@@ -10,7 +10,7 @@ services:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
 
-      # DB 접속 정보
+      # DB 접속 정보를 개별 필드로 안전하게 주입 (Oregon DB와 통신)
       - key: SPRING_DATASOURCE_HOST
         fromDatabase: { name: chatbot-db, property: host }
       - key: SPRING_DATASOURCE_PORT
@@ -31,13 +31,13 @@ services:
 
   - type: keyvalue
     name: chatbot-redis
-    region: singapore # 싱가포르로 통일
+    region: singapore # 웹 서비스와 가까운 곳에 위치
     plan: free
     ipAllowList: []
 
 databases:
   - name: chatbot-db
-    region: singapore # 싱가포르로 통일
+    region: oregon # 웹 화면에 표시된 실제 리전(오리건)에 맞춤
     plan: free
     databaseName: chatbotdb
     user: chatbot_user
