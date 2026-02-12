@@ -3,10 +3,14 @@ spring:
     web-application-type: servlet 
   
   datasource:
+    # Render의 connectionString(postgres://)을 지원하지 않을 경우를 대비해 하이브리드 설정
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/chatbotdb}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-timeout: 60000 # 60초 (Free 플랜 DB 응답 지연 대비)
+      maximum-pool-size: 10
   
   sql:
     init:
@@ -16,12 +20,14 @@ spring:
   
   jpa:
     hibernate:
-      ddl-auto: update # 실습 환경이므로 update로 설정하여 테이블 자동 생성 허용
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        # DB 연결이 안될 때 뻗지 않고 재시도하도록 힌트 설정
+        jdbc.lob.non_contextual_creation: true
 
 server:
   port: ${PORT:8080}
@@ -31,14 +37,11 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
-    operations-sorter: alpha
-    disable-swagger-default-url: true
 
 openai:
   api-key: ${OPENAI_API_KEY}
   base-url: "https://api.openai.com"
   model: gpt-4o-mini
-  timeout-ms: 30000
 
 spring.data.redis:
   host: ${SPRING_DATA_REDIS_HOST:localhost}
@@ -47,13 +50,8 @@ spring.data.redis:
 app:
   rate-limit:
     enabled: true
-    limit: 10
-    window-seconds: 60
-    key-prefix: rate_limit
 
 logging:
   level:
     root: INFO
-    com.example.chatbot.global.config.HttpLoggingFilter: DEBUG
-    org.springframework.web: INFO
-    org.hibernate.SQL: DEBUG
+    org.springframework.orm.jpa: DEBUG # JPA 초기화 과정 상세 확인용

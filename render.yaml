@@ -11,19 +11,13 @@ services:
         value: "8080"
       - key: SPRING_PROFILES_ACTIVE
         value: "prod"
-      # DB URL (Render의 postgres:// 형식을 jdbc:postgresql:// 형식으로 변환하기 위해 개별 조립)
+      # 가장 확실한 방법: Render 비밀 변수를 JDBC 형식으로 직접 매핑
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
-      - key: DB_HOST
         fromDatabase:
           name: chatbot-db
-          property: host
-      - key: DB_PORT
-        value: "5432"
-      - key: DB_NAME
-        fromDatabase:
-          name: chatbot-db
-          property: databaseName
+          property: connectionString
+      # connectionString은 'postgres://'로 시작하므로, 애플리케이션에서 이를 처리하도록 유도하거나 
+      # 명시적으로 개별 필드를 다시 한번 정확히 매핑 (오차 제거)
       - key: SPRING_DATASOURCE_USERNAME
         fromDatabase:
           name: chatbot-db
