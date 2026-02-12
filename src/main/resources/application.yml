@@ -3,34 +3,30 @@ spring:
     web-application-type: servlet 
   
   datasource:
-    # Render의 connectionString(postgres://)을 지원하지 않을 경우를 대비해 하이브리드 설정
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/chatbotdb}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
     hikari:
-      connection-timeout: 60000 # 60초 (Free 플랜 DB 응답 지연 대비)
-      maximum-pool-size: 10
+      connection-timeout: 30000
+      maximum-pool-size: 5
   
   sql:
     init:
-      mode: always
-      schema-locations: classpath:schema.sql
-      separator: ;;
+      mode: never # 배포 환경 안정성
   
   jpa:
     hibernate:
       ddl-auto: update
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        # DB 연결이 안될 때 뻗지 않고 재시도하도록 힌트 설정
         jdbc.lob.non_contextual_creation: true
 
 server:
-  port: ${PORT:8080}
+  port: ${PORT:8080} # Render 동적 포트 대응
 
 springdoc:
   api-docs:
@@ -44,14 +40,9 @@ openai:
   model: gpt-4o-mini
 
 spring.data.redis:
-  host: ${SPRING_DATA_REDIS_HOST:localhost}
-  port: ${SPRING_DATA_REDIS_PORT:6379}
-
-app:
-  rate-limit:
-    enabled: true
+  url: ${SPRING_DATA_REDIS_URL}
 
 logging:
   level:
     root: INFO
-    org.springframework.orm.jpa: DEBUG # JPA 초기화 과정 상세 확인용
+    org.hibernate.SQL: INFO
