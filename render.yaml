@@ -11,11 +11,17 @@ services:
         value: "8080"
       - key: SPRING_PROFILES_ACTIVE
         value: "prod"
-      # 데이터베이스 연결 정보 (Blueprint 자동 연결)
+      # DB URL을 JDBC 형식으로 직접 조립 (connectionString 대신 개별 항목 사용)
       - key: SPRING_DATASOURCE_URL
+        value: jdbc:postgresql://${CHATBOT_DB_HOST}/${CHATBOT_DB_NAME}
+      - key: CHATBOT_DB_HOST
         fromDatabase:
           name: chatbot-db
-          property: connectionString
+          property: host
+      - key: CHATBOT_DB_NAME
+        fromDatabase:
+          name: chatbot-db
+          property: databaseName
       - key: SPRING_DATASOURCE_USERNAME
         fromDatabase:
           name: chatbot-db
@@ -24,7 +30,7 @@ services:
         fromDatabase:
           name: chatbot-db
           property: password
-      # Redis 연결 정보 (Blueprint 자동 연결)
+      # Redis 연결 정보
       - key: SPRING_DATA_REDIS_HOST
         fromService:
           type: redis
@@ -39,12 +45,11 @@ services:
       - key: OPENAI_API_KEY
         sync: false
 
-  # Redis 서비스 추가
   - type: redis
     name: chatbot-redis
     region: singapore
     plan: free
-    ipAllowList: [] # 인프라 내부 통신용
+    ipAllowList: []
 
 databases:
   - name: chatbot-db
