@@ -31,9 +31,9 @@ public class OpenAiConfig {
                 .responseTimeout(Duration.ofMillis(timeoutMs));
 
         return builder
-                .baseUrl(baseUrl)
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + apiKey)
+                .baseUrl(java.util.Objects.requireNonNull(baseUrl))
+                .clientConnector(new ReactorClientHttpConnector(java.util.Objects.requireNonNull(httpClient)))
+                .defaultHeader("Authorization", "Bearer " + apiKey)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, "application/json")
                 .build();
     }

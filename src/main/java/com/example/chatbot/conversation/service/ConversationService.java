@@ -71,7 +71,7 @@ public class ConversationService {
                 .findByIdAndUser_Id(conversationId, userId)
                 .orElseThrow(() -> new AppException(ErrorCode.CONVERSATION_NOT_FOUND));
 
-        conversationRepository.delete(conversation);
+        conversationRepository.delete(java.util.Objects.requireNonNull(conversation));
         log.info("대화 삭제 완료: conversationId={}, userId={}", conversationId, userId);
     }
 

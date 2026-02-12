@@ -35,7 +35,7 @@ public class OpenAiService {
 
             ChatResponse response = openAiWebClient.post()
                     .uri("/v1/chat/completions")
-                    .bodyValue(request)
+                    .bodyValue(java.util.Objects.requireNonNull(request))
                     .retrieve()
                     .onStatus(HttpStatusCode::is4xxClientError, clientResponse ->
                             clientResponse.bodyToMono(String.class)
@@ -70,7 +70,7 @@ public class OpenAiService {
 
         return openAiWebClient.post()
                 .uri("/v1/chat/completions")
-                .bodyValue(request)
+                .bodyValue(java.util.Objects.requireNonNull(request))
                 .retrieve()
                 .onStatus(HttpStatusCode::isError, response -> response.bodyToMono(String.class)
                         .flatMap(errorBody -> Mono.error(new RuntimeException("OpenAI API 에러: " + errorBody))))

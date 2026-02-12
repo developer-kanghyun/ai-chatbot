@@ -12,11 +12,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @Slf4j
 @RestController
@@ -46,15 +48,12 @@ public class ChatController {
 
         ChatCompletionResponse response = chatService.createChatCompletion(request);
 
-        log.info("ChatCompletion 응답: conversationId={}, messageId={}", 
-                response.getConversationId(), response.getMessage().getId());
-
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
-    @PostMapping(value = "/completions/stream", produces = org.springframework.http.MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PostMapping(value = "/completions/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @Operation(summary = "채팅 스트리밍", description = "AI 응답을 SSE(Server-Sent Events)로 스트리밍합니다.")
-    public reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent<String>> streamChatCompletion(
+    public SseEmitter streamChatCompletion(
             @Valid @RequestBody ChatCompletionRequest request) {
 
         log.info("ChatCompletion(Stream) 요청: message='{}', conversationId={}",
