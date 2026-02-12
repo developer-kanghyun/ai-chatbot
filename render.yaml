@@ -2,23 +2,52 @@ services:
   - type: web
     name: ai-chatbot
     env: docker
-    region: singapore # 아시아권 속도 최적화
+    region: singapore
     plan: free
-    healthCheckPath: /health # Render가 포트 감지 후 서비스 가용성을 판단하는 경로
+    healthCheckPath: /health
     numInstances: 1
     envVars:
       - key: PORT
-        value: "8080" # 외부 노출 포트 (내부에서 10000 등으로 바인딩해도 Render가 브릿지)
+        value: "8080"
       - key: SPRING_PROFILES_ACTIVE
         value: "prod"
-      - key: DB_PASSWORD
-        generateValue: true # 최초 생성 시 자동 생성 혹은 대시보드 입력
+      # 데이터베이스 연결 정보 (Blueprint 자동 연결)
+      - key: SPRING_DATASOURCE_URL
+        fromDatabase:
+          name: chatbot-db
+          property: connectionString
+      - key: SPRING_DATASOURCE_USERNAME
+        fromDatabase:
+          name: chatbot-db
+          property: user
+      - key: SPRING_DATASOURCE_PASSWORD
+        fromDatabase:
+          name: chatbot-db
+          property: password
+      # Redis 연결 정보 (Blueprint 자동 연결)
+      - key: SPRING_DATA_REDIS_HOST
+        fromService:
+          type: redis
+          name: chatbot-redis
+          property: host
+      - key: SPRING_DATA_REDIS_PORT
+        fromService:
+          type: redis
+          name: chatbot-redis
+          property: port
+      # 기타 설정
       - key: OPENAI_API_KEY
-        sync: false # 대시보드에서 수동 입력 권장
-    autoDeploy: true
+        sync: false
+
+  # Redis 서비스 추가
+  - type: redis
+    name: chatbot-redis
+    region: singapore
+    plan: free
+    ipAllowList: [] # 인프라 내부 통신용
 
 databases:
   - name: chatbot-db
-    plan: free # 90일 후 삭제 주의 (README 명시)
+    plan: free
     databaseName: chatbotdb
     user: chatbot_user
