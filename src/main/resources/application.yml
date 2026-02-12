@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8080}
+  port: ${PORT:10000}
 
 spring:
   main:
@@ -16,7 +16,7 @@ spring:
 
   sql:
     init:
-      mode: never # 배포 환경 안정성 확보
+      mode: never
 
   data:
     redis:
@@ -30,3 +30,14 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc.lob.non_contextual_creation: true
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  base-url: "https://api.openai.com"
+  model: gpt-4o-mini
+  timeout-ms: 60000
+
+logging:
+  level:
+    root: INFO
+    com.example.chatbot: DEBUG
