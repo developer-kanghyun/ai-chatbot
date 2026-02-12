@@ -11,14 +11,16 @@ services:
         value: "8080"
       - key: SPRING_PROFILES_ACTIVE
         value: "prod"
-      # DB URL을 JDBC 형식으로 직접 조립 (connectionString 대신 개별 항목 사용)
+      # DB URL (Render의 postgres:// 형식을 jdbc:postgresql:// 형식으로 변환하기 위해 개별 조립)
       - key: SPRING_DATASOURCE_URL
-        value: jdbc:postgresql://${CHATBOT_DB_HOST}/${CHATBOT_DB_NAME}
-      - key: CHATBOT_DB_HOST
+        value: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+      - key: DB_HOST
         fromDatabase:
           name: chatbot-db
           property: host
-      - key: CHATBOT_DB_NAME
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_NAME
         fromDatabase:
           name: chatbot-db
           property: databaseName
@@ -30,7 +32,7 @@ services:
         fromDatabase:
           name: chatbot-db
           property: password
-      # Redis 연결 정보
+      # Redis 정보
       - key: SPRING_DATA_REDIS_HOST
         fromService:
           type: redis
@@ -41,7 +43,6 @@ services:
           type: redis
           name: chatbot-redis
           property: port
-      # 기타 설정
       - key: OPENAI_API_KEY
         sync: false
 
