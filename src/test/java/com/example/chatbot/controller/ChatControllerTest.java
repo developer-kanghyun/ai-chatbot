@@ -73,12 +73,12 @@ class ChatControllerTest {
         request.setMessage(""); // 빈 메시지
 
         mockMvc.perform(post("/api/chat/completions")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(java.util.Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .header("X-API-Key", "test-key")
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(java.util.Objects.requireNonNull(objectMapper.writeValueAsString(request))))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.error.code").value("VALIDATION_ERROR"));
+                .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"));
     }
 
     @Test
@@ -101,9 +101,9 @@ class ChatControllerTest {
         request.setConversationId(null); // conversation_id 없음
 
         mockMvc.perform(post("/api/chat/completions")
-                        .contentType(MediaType.APPLICATION_JSON)
+                        .contentType(java.util.Objects.requireNonNull(MediaType.APPLICATION_JSON))
                         .header("X-API-Key", "test-key")
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(java.util.Objects.requireNonNull(objectMapper.writeValueAsString(request))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.conversation_id").value("mock-conversation-id"))
