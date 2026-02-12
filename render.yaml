@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: ai-chatbot
+    env: docker
+    region: singapore # 아시아권 속도 최적화
+    plan: free
+    healthCheckPath: /health # Render가 포트 감지 후 서비스 가용성을 판단하는 경로
+    numInstances: 1
+    envVars:
+      - key: PORT
+        value: "8080" # 외부 노출 포트 (내부에서 10000 등으로 바인딩해도 Render가 브릿지)
+      - key: SPRING_PROFILES_ACTIVE
+        value: "prod"
+      - key: DB_PASSWORD
+        generateValue: true # 최초 생성 시 자동 생성 혹은 대시보드 입력
+      - key: OPENAI_API_KEY
+        sync: false # 대시보드에서 수동 입력 권장
+    autoDeploy: true
+
+databases:
+  - name: chatbot-db
+    plan: free # 90일 후 삭제 주의 (README 명시)
+    databaseName: chatbotdb
+    user: postgres
