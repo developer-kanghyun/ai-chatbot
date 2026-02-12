@@ -21,4 +21,4 @@ databases:
   - name: chatbot-db
     plan: free # 90일 후 삭제 주의 (README 명시)
     databaseName: chatbotdb
-    user: postgres
+    user: chatbot_user
