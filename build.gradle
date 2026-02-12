@@ -1,3 +1,4 @@
+// Refresh Gradle dependencies to fix IDE sync issues
 plugins {
     id 'java'
     id 'org.springframework.boot' version '3.2.12'
