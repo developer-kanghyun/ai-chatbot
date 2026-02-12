@@ -2,7 +2,7 @@ services:
   - type: web
     name: ai-chatbot
     env: docker
-    region: oregon # DB 위치인 Oregon으로 통일
+    region: singapore # 기존 서비스 리전으로 원복
     plan: free
     healthCheckPath: /health
     numInstances: 1
@@ -31,13 +31,13 @@ services:
 
   - type: keyvalue
     name: chatbot-redis
-    region: oregon # Redis도 Oregon으로 통일
+    region: singapore # 싱가포르로 통일
     plan: free
     ipAllowList: []
 
 databases:
   - name: chatbot-db
-    region: oregon # 현재 실제 위치 반영
+    region: singapore # 싱가포르로 통일
     plan: free
     databaseName: chatbotdb
     user: chatbot_user
