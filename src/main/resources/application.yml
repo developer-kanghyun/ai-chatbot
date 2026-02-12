@@ -1,48 +1,32 @@
+server:
+  port: ${PORT:8080}
+
 spring:
   main:
-    web-application-type: servlet 
-  
+    web-application-type: servlet
+
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/chatbotdb}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:password}
+    url: ${SPRING_DATASOURCE_URL:}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
     hikari:
       connection-timeout: 30000
       maximum-pool-size: 5
-  
+
   sql:
     init:
-      mode: never # 배포 환경 안정성
-  
+      mode: never # 배포 환경 안정성 확보
+
+  data:
+    redis:
+      url: ${SPRING_DATA_REDIS_URL:}
+
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: false
     properties:
       hibernate:
-        format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
         jdbc.lob.non_contextual_creation: true
-
-server:
-  port: ${PORT:8080} # Render 동적 포트 대응
-
-springdoc:
-  api-docs:
-    path: /v3/api-docs
-  swagger-ui:
-    path: /swagger-ui.html
-
-openai:
-  api-key: ${OPENAI_API_KEY}
-  base-url: "https://api.openai.com"
-  model: gpt-4o-mini
-
-spring.data.redis:
-  url: ${SPRING_DATA_REDIS_URL}
-
-logging:
-  level:
-    root: INFO
-    org.hibernate.SQL: INFO

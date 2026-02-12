@@ -8,9 +8,9 @@ services:
     numInstances: 1
     envVars:
       - key: SPRING_PROFILES_ACTIVE
-        value: "prod"
+        value: prod
 
-      # DB 정보를 분해하여 주입 (Blueprint Spec 준수)
+      # DB 접속 정보를 개별 필드로 안전하게 주입
       - key: SPRING_DATASOURCE_HOST
         fromDatabase: { name: chatbot-db, property: host }
       - key: SPRING_DATASOURCE_PORT
@@ -22,7 +22,7 @@ services:
       - key: SPRING_DATASOURCE_PASSWORD
         fromDatabase: { name: chatbot-db, property: password }
 
-      # Key Value URL로 주입
+      # Redis 정보를 URL 형태로 주입
       - key: SPRING_DATA_REDIS_URL
         fromService: { type: keyvalue, name: chatbot-redis, property: connectionString }
 
@@ -33,10 +33,11 @@ services:
     name: chatbot-redis
     region: singapore
     plan: free
-    ipAllowList: [] # Key Value 필수 필드
+    ipAllowList: [] # 인프라 내부 통신용 (보안)
 
 databases:
   - name: chatbot-db
+    region: singapore
     plan: free
     databaseName: chatbotdb
     user: chatbot_user
