@@ -1,100 +1,94 @@
 # 🤖 AI Chatbot API Server
 
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2.12-brightgreen.svg)](https://spring.io/projects/spring-boot)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue.svg)](https://www.postgresql.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-blue.svg)](https://www.postgresql.org/)
 [![Redis](https://img.shields.io/badge/Redis-7-red.svg)](https://redis.io/)
-[![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4-orange.svg)](https://openai.com/)
-[![Render](https://img.shields.io/badge/Deployment-Render-lightgrey.svg)](https://render.com/)
+[![Deployment](https://img.shields.io/badge/Live-Render-success.svg)](https://ai-chatbot-rs7c.onrender.com/health)
 
-다양한 클라이언트(Web, Mobile, Desktop)에서 즉시 연동 가능한 **범용 AI 챗봇 REST API 서버**입니다. OpenAI GPT 모델을 기반으로 지능적인 대화 처리를 지원하며, 실시간 답변 생성을 위한 SSE 스트리밍 및 대화 맥락 유지 기능을 제공합니다.
+다양한 클라이언트(Web, Mobile)에서 즉시 연동 가능한 **엔터프라이즈급 AI 챗봇 REST API 서버**입니다. OpenAI GPT-4 모델을 활용한 지능형 대화와 실시간 스트리밍(SSE)을 지원하며, 상용 환경 배포를 위한 안정적인 인프라 설계를 포함합니다.
 
 ---
 
 ## 🚀 주요 기능 (Key Features)
 
-- **Chat Completion**: OpenAI GPT API 연동을 통한 지능적인 대화 응답
-- **Context Management**: 최근 20개의 메시지를 기반으로 한 지속적인 대화 맥락 유지
-- **SSE Streaming**: `text/event-stream` 기반의 실시간 응답 (Token-by-token)
-- **Security & Auth**: `X-API-Key` 헤더 기반의 보안 인증 적용
-- **Rate Limiting**: Redis 기반의 실시간 요청 횟수 제한 (과도한 API 호출 방지)
-- **Persistent Storage**: PostgreSQL을 사용한 모든 대화 세션 및 메시지 이력 관리
-- **Integrated Logging**: MDC 기반의 Request ID 추적 및 HTTP 상세 로깅 (민감 정보 마스킹)
+- **Intelligent Conversation**: OpenAI GPT API 기반의 문맥 인지 대화
+- **SSE Streaming**: `text/event-stream` 기반 실시간 토큰 전송 (사용자 경험 극대화)
+- **Rate Limiting**: Redis 기반 실시간 트래픽 제어 (DoS 방지 및 비용 최적화)
+- **Security**: API Key 기반 인증 및 필터 기반 로깅 시스템 (MDC 추적)
+- **Robust Persistence**: PostgreSQL 기반 대화 이력 및 컨텍스트 관리 (최근 20개 메시지 유지)
 
 ---
 
 ## 🛠 기술 스택 (Tech Stack)
 
-### Backend Core
-- **Framework**: Spring Boot 3.2.12 (Java 17)
-- **Security**: Spring Security 6 (API Key Filter)
-- **Data**: Spring Data JPA / Hibernate
-- **Communication**: Spring WebFlux (WebClient for OpenAI API)
+### Backend
+- **Core**: Spring Boot 3.2.12, Java 17
+- **Security**: Spring Security 6 (API Key Auth)
+- **Web**: Spring WebFlux (WebClient for Non-blocking API calls)
+- **ORM**: Spring Data JPA (Hibernate)
 
-### Infrastructure & DevOps
-- **Database**: PostgreSQL (Persistence)
-- **Cache**: Redis (Rate Limiting)
-- **Documentation**: Springdoc OpenAPI / Swagger UI
-- **Container**: Docker (Multi-stage, Layered JAR)
-- **CI/CD**: Render (Blueprint Template)
-
----
-
-## 📊 데이터베이스 설계 (ERD)
-
-| 테이블 | 설명 | 관계 |
-| :--- | :--- | :--- |
-| **users** | API Key 및 사용자 기본 정보 관리 | `1 : N` (Conversations) |
-| **conversations** | 대화 세션 정보 (제목, 생성일 등) | `1 : N` (Messages) |
-| **messages** | 질문(user) 및 답변(assistant) 상세 내용 | - |
+### Infrastructure
+- **Deployment**: **Render (Blueprints)**
+- **Database**: Managed PostgreSQL 18
+- **Cache**: Valkey 8 (Managed Redis Service)
+- **Container**: Docker (Multi-stage, Layered JAR, JarLauncher)
 
 ---
 
-## 🔌 API 명세 요약
+## ☁️ 배포 아키텍처 (Deployment Details)
 
-모든 요청은 헤더에 `X-API-Key`가 포함되어야 합니다.
+본 프로젝트는 **Render** 환경에 최적화되어 있으며, 다음의 기술적 난제를 해결하여 배포되었습니다:
 
-| Method | Endpoint | Description |
-| :--- | :--- | :--- |
-| **POST** | `/api/chat/completions` | 일반 채팅 응답 반환 |
-| **GET** | `/api/chat/completions/stream` | 실시간 스트라이밍 응답 (SSE) |
-| **GET** | `/api/conversations` | 대화 목록 조회 |
-| **GET** | `/api/conversations/{id}` | 대화 상세 조회 |
-| **GET** | `/api/conversations/{id}/messages` | 특정 대화의 메시지 내역 조회 |
-| **DELETE** | `/api/conversations/{id}` | 대화 세션 삭제 |
-| **GET** | `/health` | 서버 상태 체크 (Permit All) |
-
-> 📖 **Swagger UI**: 서버 실행 후 `http://localhost:8080/swagger-ui.html`에서 상세 명세 확인 및 테스트가 가능합니다.
+- **JDBC URL Runtime assembly**: Render의 `connectionString`(`postgresql://`) 규격을 JDBC 표준(`jdbc:postgresql://`)으로 자동 변환하는 런타임 엔트리포인트 설계 (`entrypoint.sh`).
+- **Region Optimized**: 서비스 지연 시간을 최소화하기 위한 인프라 리전 동기화 (Oregon US-West).
+- **Zero-Config Blueprints**: `render.yaml` 작성을 통해 클릭 한 번으로 DB, Redis, Web Service를 자동 연계 생성.
 
 ---
 
-## ⚙️ 시작하기 (Getting Started)
+## 🌐 실시간 서비스 확인
+배포된 서버의 상태와 API 문서를 아래 링크를 통해 즉시 확인하실 수 있습니다.
+*   **서버 상태 확인 (Health Check)**: [https://ai-chatbot-rs7c.onrender.com/health](https://ai-chatbot-rs7c.onrender.com/health)
+    *   접속 시 `{"status": "UP", ...}` 메시지가 나오면 서버가 정상 가동 중입니다.
+*   **인터랙티브 API 문서 (Swagger)**: [https://ai-chatbot-rs7c.onrender.com/swagger-ui.html](https://ai-chatbot-rs7c.onrender.com/swagger-ui.html)
+    *   웹 브라우저에서 직접 API를 테스트해 볼 수 있습니다.
 
-### 환경 변수 설정 (.env 또는 OS Env)
-서버 실행을 위해 다음 환경 변수가 필요합니다.
-```properties
-SPRING_PROFILES_ACTIVE=prod
-OPENAI_API_KEY=your_openai_api_key_here
-DB_PASSWORD=your_db_password
-REDIS_HOST=localhost
-REDIS_PORT=6379
+---
+
+## 🔌 API 사용 안내
+
+### 인증 방법
+모든 API 호출 시 헤더에 서비스 등록된 `X-API-Key`를 포함해야 합니다.
+```bash
+curl -X POST https://ai-chatbot-rs7c.onrender.com/api/chat/completions \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "안녕?", "conversationId": 1}'
 ```
 
-### 로컬 실행 (Docker Compose)
-제공된 설정으로 인프라를 한 번에 실행할 수 있습니다.
+### 주요 엔드포인트
+- `POST /api/chat/completions`: 일반 대화 응답
+- `POST /api/chat/completions/stream`: SSE 실시간 스트리밍 답변
+- `GET /health`: 서버 및 DB 연결 상태 확인 (공개 경로)
+- `GET /swagger-ui.html`: 인터랙티브 API 문서
+
+---
+
+## 🧪 로컬 개발 환경 구축
+
 ```bash
+# 1. 소스코드 복제
+git clone https://github.com/developer-kanghyun/ai-chatbot.git
+
+# 2. 인프라 실행 (Docker Desktop 필요)
 docker-compose up -d
+
+# 3. 환경 변수 설정
+export OPENAI_API_KEY=your_key
+export SPRING_PROFILES_ACTIVE=prod
+
+# 4. 애플리케이션 실행
 ./gradlew bootRun
 ```
-
----
-
-## 📦 배포 (Deployment)
-
-본 프로젝트는 **Render** 배포를 공식 지원합니다. `render.yaml` 파일을 통해 Blueprint 배포가 가능합니다.
-
-1. GitHub 저장소 연결
-2. `render.yaml` 감지 시 즉시 배포 시작
-3. 환경 변수(`OPENAI_API_KEY`) 설정 후 완료
 
 ---
 
@@ -107,6 +101,3 @@ docker-compose up -d
 - `RateLimitIntegrationTest`: 속도 제한 로직 검증
 
 ---
-
-## 📄 라이선스 (License)
-본 프로젝트는 교육용 과제로 제작되었으며, 상업적 목적으로 사용 시 OpenAI 사용 정책을 준수해야 합니다.
