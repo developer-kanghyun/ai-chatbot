@@ -15,5 +15,5 @@ public class ChatCompletionRequest {
     private String message;
     
     @JsonProperty("conversation_id")
-    private String conversationId; // Optional
+    private String conversationId;
 }

@@ -1,6 +1,6 @@
 package com.example.chatbot.runner;
 
-import com.example.chatbot.dto.openai.Message;
+import com.example.chatbot.dto.openai.OpenAiMessage;
 import com.example.chatbot.service.OpenAiService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,7 +12,7 @@ import java.util.List;
 
 @Slf4j
 @Component
-@Profile({"local", "default"}) // 로컬 개발 환경에서만 실행
+@Profile({"local", "default"})
 @RequiredArgsConstructor
 public class OpenAiRunner implements CommandLineRunner {
 
@@ -23,9 +23,9 @@ public class OpenAiRunner implements CommandLineRunner {
         log.info("=== OpenAI 연동(Service) 테스트 시작 ===");
 
         try {
-            List<Message> messages = List.of(
-                    new Message("system", "You are a helpful assistant."),
-                    new Message("user", "Hello! Who are you? Reply briefly.")
+            List<OpenAiMessage> messages = List.of(
+                    new OpenAiMessage("system", "You are a helpful assistant."),
+                    new OpenAiMessage("user", "Hello! Who are you? Reply briefly.")
             );
 
             String response = openAiService.createChatCompletion(messages);
