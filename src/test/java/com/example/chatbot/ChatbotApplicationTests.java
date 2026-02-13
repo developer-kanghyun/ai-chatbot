@@ -31,7 +31,9 @@ class ChatbotApplicationTests {
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
         registry.add("spring.data.redis.url", () -> "redis://" + redis.getHost() + ":" + redis.getMappedPort(6379));
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create");
+        registry.add("spring.data.redis.timeout", () -> "1s");
+        registry.add("spring.data.redis.lettuce.shutdown-timeout", () -> "50ms");
     }
 
     @Test

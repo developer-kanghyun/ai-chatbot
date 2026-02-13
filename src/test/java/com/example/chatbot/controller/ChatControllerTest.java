@@ -24,6 +24,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import java.time.LocalDateTime;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -57,7 +58,7 @@ class ChatControllerTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create");
         registry.add("app.rate-limit.enabled", () -> "false");
     }
 
@@ -73,9 +74,9 @@ class ChatControllerTest {
         request.setMessage(""); // 빈 메시지
 
         mockMvc.perform(post("/api/chat/completions")
-                        .contentType(java.util.Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
                         .header("X-API-Key", "test-key")
-                        .content(java.util.Objects.requireNonNull(objectMapper.writeValueAsString(request))))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.error.code").value("INVALID_INPUT"));
@@ -94,16 +95,16 @@ class ChatControllerTest {
                         .build())
                 .build();
 
-        when(chatService.createChatCompletion(any())).thenReturn(mockResponse);
+        when(chatService.createChatCompletion(any(), anyLong())).thenReturn(mockResponse);
 
         ChatCompletionRequest request = new ChatCompletionRequest();
         request.setMessage("Hello");
         request.setConversationId(null); // conversation_id 없음
 
         mockMvc.perform(post("/api/chat/completions")
-                        .contentType(java.util.Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                        .contentType(MediaType.APPLICATION_JSON)
                         .header("X-API-Key", "test-key")
-                        .content(java.util.Objects.requireNonNull(objectMapper.writeValueAsString(request))))
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.conversation_id").value("mock-conversation-id"))
