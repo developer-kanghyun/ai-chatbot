@@ -97,9 +97,9 @@ public class HttpLoggingFilter extends OncePerRequestFilter {
     }
 
     private ContentCachingRequestWrapper wrapRequest(HttpServletRequest request) {
-        if (request instanceof ContentCachingRequestWrapper wrapper) return wrapper;
-        // 의시적인 null 체크로 경고 해결
-        if (request == null) return null; 
+        if (request instanceof ContentCachingRequestWrapper wrapper) {
+            return wrapper;
+        }
         return new ContentCachingRequestWrapper(request);
     }
 
