@@ -17,12 +17,20 @@ spring:
   data:
     redis:
       url: redis://localhost:6379
+      timeout: 1s
+      lettuce:
+        shutdown-timeout: 50ms
 
 openai:
   api-key: ${OPENAI_API_KEY}
   base-url: "https://api.openai.com"
   model: gpt-4o-mini
-  timeout-ms: 30000
+  connect-timeout-ms: 1000
+  response-timeout-ms: 30000
+
+app:
+  chat:
+    context-size: 10
 
 logging:
   level:
