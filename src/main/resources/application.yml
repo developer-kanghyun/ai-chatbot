@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:10000}
+  port: ${PORT:8080}
 
 spring:
   main:
@@ -21,6 +21,9 @@ spring:
   data:
     redis:
       url: ${SPRING_DATA_REDIS_URL:}
+      timeout: ${SPRING_DATA_REDIS_TIMEOUT:3s}
+      lettuce:
+        shutdown-timeout: ${SPRING_DATA_REDIS_LETTUCE_SHUTDOWN_TIMEOUT:100ms}
 
   jpa:
     hibernate:
@@ -35,7 +38,17 @@ openai:
   api-key: ${OPENAI_API_KEY}
   base-url: "https://api.openai.com"
   model: gpt-4o-mini
-  timeout-ms: 60000
+  connect-timeout-ms: 5000
+  response-timeout-ms: 60000
+
+app:
+  chat:
+    context-size: ${APP_CHAT_CONTEXT_SIZE:10}
+  rate-limit:
+    enabled: ${APP_RATE_LIMIT_ENABLED:true}
+    limit: ${APP_RATE_LIMIT_LIMIT:3}
+    window-seconds: ${APP_RATE_LIMIT_WINDOW_SECONDS:60}
+    key-prefix: ${APP_RATE_LIMIT_KEY_PREFIX:rate_limit}
 
 logging:
   level:

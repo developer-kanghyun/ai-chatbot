@@ -13,12 +13,12 @@ public class RateLimitProperties {
 
     private boolean enabled = true;
 
-    /** 윈도우 내 최대 허용 요청 수 */
+    // 윈도우 내 최대 허용 요청 수
     private int limit = 30;
 
-    /** 고정 윈도우 크기 (초 단위) */
+    // 고정 윈도우 크기 (초 단위)
     private int windowSeconds = 60;
 
-    /** Redis key prefix */
+    // Redis key prefix
     private String keyPrefix = "rate_limit";
 }
