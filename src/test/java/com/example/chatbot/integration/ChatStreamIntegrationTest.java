@@ -1,53 +1,37 @@
 package com.example.chatbot.integration;
 
-import com.example.chatbot.conversation.repository.ConversationRepository;
-import com.example.chatbot.conversation.repository.MessageRepository;
-import com.example.chatbot.repository.UserRepository;
+import com.example.chatbot.entity.Message;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
+import org.springframework.test.web.reactive.server.WebTestClient;
 import org.testcontainers.junit.jupiter.Testcontainers;
-import org.testcontainers.utility.DockerImageName;
+import reactor.core.publisher.Flux;
 
 import java.io.IOException;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureWebTestClient(timeout = "30000")
 @ActiveProfiles("test")
 @Testcontainers
-class ChatStreamIntegrationTest {
+class ChatStreamIntegrationTest extends IntegrationTestSupport {
 
     @Autowired
-    private ConversationRepository conversationRepository;
-
-    @Autowired
-    private MessageRepository messageRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private WebTestClient webTestClient;
 
     private static MockWebServer mockBackEnd;
-
-    @Container
-    @SuppressWarnings("resource")
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine");
-
-    @Container
-    @SuppressWarnings("resource")
-    static GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379);
 
     @BeforeAll
     static void setUp() throws IOException {
@@ -62,30 +46,40 @@ class ChatStreamIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.data.redis.url", () -> "redis://" + redis.getHost() + ":" + redis.getMappedPort(6379));
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
-        registry.add("openai.api.url", () -> String.format("http://localhost:%d", mockBackEnd.getPort()));
-    }
-
-    @BeforeEach
-    void clear() {
-        messageRepository.deleteAll();
-        conversationRepository.deleteAll();
-        userRepository.deleteAll();
-        // 테스트용 유저 생성 로직 등...
+        registry.add("openai.base-url", () -> String.format("http://localhost:%d", mockBackEnd.getPort()));
+        registry.add("openai.api-key", () -> "test-openai-key");
     }
 
     @Test
     void testChatCompletionStream() {
-        // Mock response setup
         mockBackEnd.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .setHeader("Content-Type", "text/event-stream")
-                .setBody("data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\ndata: [DONE]\n\n"));
+                .setBody("data: {\"choices\":[{\"delta\":{\"content\":\"Hello\"}}]}\n\ndata: {\"choices\":[{\"delta\":{\"content\":\" World\"}}]}\n\ndata: [DONE]\n\n"));
 
-        // Test implementation...
+        Flux<String> body = webTestClient.post()
+                .uri("/api/chat/completions/stream")
+                .header("X-API-Key", "test-key")
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue("{\"message\":\"안녕\"}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentTypeCompatibleWith(MediaType.TEXT_EVENT_STREAM)
+                .returnResult(String.class)
+                .getResponseBody()
+                .take(5);
+
+        List<String> events = body.collectList().block();
+        assertThat(events).isNotNull();
+        assertThat(events).anyMatch(line -> line.contains("Hello"));
+        assertThat(events).anyMatch(line -> line.contains("World"));
+        assertThat(events).anyMatch(line -> line.contains("[DONE]"));
+
+        List<Message> messages = messageRepository.findAll();
+        assertThat(messages).hasSize(2);
+        assertThat(messages)
+                .extracting(Message::getRole)
+                .containsExactly(Message.Role.user, Message.Role.assistant);
+        assertThat(messages.get(1).getContent()).isEqualTo("Hello World");
     }
 }
