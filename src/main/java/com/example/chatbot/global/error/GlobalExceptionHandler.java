@@ -2,6 +2,8 @@ package com.example.chatbot.global.error;
 
 import com.example.chatbot.dto.common.ApiErrorResponse;
 import com.example.chatbot.global.ratelimit.RateLimitException;
+import com.example.chatbot.global.ratelimit.RateLimitResponseFactory;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,23 +13,26 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 @Slf4j
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler {
+
+    private final RateLimitResponseFactory rateLimitResponseFactory;
 
     @ExceptionHandler(RateLimitException.class)
     public ResponseEntity<ApiErrorResponse> handleRateLimitException(RateLimitException e) {
-        log.warn("Rate limit exceeded: identifier={}, limit={}", e.getLimit(), e.getWindowSeconds());
+        log.warn("Rate limit exceeded: limit={}, windowSeconds={}, retryAfter={}",
+                e.getLimit(), e.getWindowSeconds(), e.getRetryAfterSeconds());
         return ResponseEntity
                 .status(HttpStatus.TOO_MANY_REQUESTS)
                 .header("Retry-After", String.valueOf(e.getRetryAfterSeconds()))
-                .body(ApiErrorResponse.error("RATE_LIMIT_EXCEEDED", 
-                        String.format("요청 횟수 제한 초과 (%d초 후 재시도)", e.getRetryAfterSeconds())));
+                .body(rateLimitResponseFactory.createBody(e));
     }
 
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ApiErrorResponse> handleAppException(AppException e) {
         log.warn("AppException: code={}, message={}", e.getErrorCode().getCode(), e.getMessage());
         return ResponseEntity
-                .status(java.util.Objects.requireNonNull(e.getErrorCode().getStatus()))
+                .status(e.getErrorCode().getStatus())
                 .body(ApiErrorResponse.error(e.getErrorCode().getCode(), e.getMessage()));
     }
 

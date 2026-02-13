@@ -33,10 +33,9 @@ public class RedisRateLimitService {
             public <K, V> List<Object> execute(@NonNull RedisOperations<K, V> operations) throws DataAccessException {
                 @SuppressWarnings("unchecked")
                 RedisOperations<String, String> stringOps = (RedisOperations<String, String>) operations;
-                String redisKey = java.util.Objects.requireNonNull(key);
                 stringOps.multi();
-                stringOps.opsForValue().increment(redisKey);
-                stringOps.expire(redisKey, properties.getWindowSeconds() + 10, TimeUnit.SECONDS);
+                stringOps.opsForValue().increment(key);
+                stringOps.expire(key, properties.getWindowSeconds() + 10, TimeUnit.SECONDS);
                 return stringOps.exec();
             }
         });
