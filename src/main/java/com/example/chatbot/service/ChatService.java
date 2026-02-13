@@ -1,15 +1,12 @@
 package com.example.chatbot.service;
 
-import com.example.chatbot.conversation.repository.ConversationRepository;
-import com.example.chatbot.conversation.repository.MessageRepository;
 import com.example.chatbot.dto.request.ChatCompletionRequest;
 import com.example.chatbot.dto.response.ChatCompletionResponse;
+import com.example.chatbot.dto.openai.OpenAiMessage;
 import com.example.chatbot.entity.Conversation;
 import com.example.chatbot.entity.Message;
-import com.example.chatbot.entity.User;
 import com.example.chatbot.global.error.AppException;
 import com.example.chatbot.global.error.ErrorCode;
-import com.example.chatbot.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -25,25 +22,22 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ChatService {
 
-    private final ConversationRepository conversationRepository;
-    private final MessageRepository messageRepository;
-    private final UserRepository userRepository;
+    private final ConversationContextService conversationContextService;
     private final OpenAiService openAiService;
 
     @Transactional
-    public ChatCompletionResponse createChatCompletion(ChatCompletionRequest request) {
+    public ChatCompletionResponse createChatCompletion(ChatCompletionRequest request, Long userId) {
         Long conversationId = parseConversationId(request.getConversationId());
-        Conversation conversation = getOrCreateConversation(conversationId, 1L, request.getMessage());
+        Conversation conversation = conversationContextService.getOrCreateConversation(conversationId, userId, request.getMessage());
 
-        messageRepository.save(new Message(conversation, Message.Role.user, request.getMessage()));
+        conversationContextService.saveUserMessage(conversation, request.getMessage());
 
-        List<Message> contextMessages = getContextMessages(conversation.getId());
-        List<com.example.chatbot.dto.openai.Message> openAiMessages = convertToOpenAiMessages(contextMessages);
+        List<OpenAiMessage> openAiMessages =
+                conversationContextService.buildOpenAiContextMessages(conversation.getId());
 
         String assistantContent = openAiService.createChatCompletion(openAiMessages);
 
-        Message assistantMessage = new Message(conversation, Message.Role.assistant, assistantContent);
-        messageRepository.save(assistantMessage);
+        Message assistantMessage = conversationContextService.saveAssistantMessage(conversation, assistantContent);
 
         return ChatCompletionResponse.builder()
                 .conversationId(String.valueOf(conversation.getId()))
@@ -56,15 +50,15 @@ public class ChatService {
                 .build();
     }
 
-    public SseEmitter createChatCompletionStream(ChatCompletionRequest request) {
+    public SseEmitter createChatCompletionStream(ChatCompletionRequest request, Long userId) {
         SseEmitter emitter = new SseEmitter(60000L); 
         Long conversationId = parseConversationId(request.getConversationId());
-        Conversation conversation = getOrCreateConversation(conversationId, 1L, request.getMessage());
+        Conversation conversation = conversationContextService.getOrCreateConversation(conversationId, userId, request.getMessage());
 
-        messageRepository.save(new Message(conversation, Message.Role.user, request.getMessage()));
+        conversationContextService.saveUserMessage(conversation, request.getMessage());
 
-        List<Message> contextMessages = getContextMessages(conversation.getId());
-        List<com.example.chatbot.dto.openai.Message> openAiMessages = convertToOpenAiMessages(contextMessages);
+        List<OpenAiMessage> openAiMessages =
+                conversationContextService.buildOpenAiContextMessages(conversation.getId());
 
         StringBuilder gatheredContent = new StringBuilder();
 
@@ -74,7 +68,7 @@ public class ChatService {
                             if (content != null) {
                                 gatheredContent.append(content);
                                 try {
-                                    Object eventData = java.util.Objects.requireNonNull(java.util.Collections.singletonMap("text", content));
+                                    Object eventData = Collections.singletonMap("text", content);
                                     emitter.send(SseEmitter.event()
                                             .name("token")
                                             .data(eventData));
@@ -83,13 +77,9 @@ public class ChatService {
                                 }
                             }
                         },
-                        err -> {
-                            if (err != null) {
-                                log.error("Stream error", err);
-                                emitter.completeWithError(err);
-                            } else {
-                                emitter.complete();
-                            }
+                        streamError -> {
+                            log.error("Stream error", streamError);
+                            emitter.completeWithError(streamError);
                         },
                         () -> {
                             try {
@@ -98,7 +88,7 @@ public class ChatService {
                                 
                                 String fullContent = gatheredContent.toString();
                                 if (!fullContent.isEmpty()) {
-                                    messageRepository.save(new Message(conversation, Message.Role.assistant, fullContent));
+                                    conversationContextService.saveAssistantMessage(conversation, fullContent);
                                 }
                             } catch (IOException e) {
                                 log.error("SSE complete failed", e);
@@ -110,31 +100,13 @@ public class ChatService {
     }
 
     private Long parseConversationId(String id) {
-        return id != null && !id.isBlank() ? Long.parseLong(id) : null;
-    }
-
-    private Conversation getOrCreateConversation(Long conversationId, Long userId, String firstMessage) {
-        if (conversationId == null) {
-            User user = userRepository.findById(java.util.Objects.requireNonNull(userId))
-                    .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-            String title = firstMessage.length() > 50 ? firstMessage.substring(0, 50) : firstMessage;
-            return conversationRepository.save(new Conversation(user, title));
-        } else {
-            return conversationRepository.findByIdAndUser_Id(conversationId, userId)
-                    .orElseThrow(() -> new AppException(ErrorCode.CONVERSATION_NOT_FOUND));
+        if (id == null || id.isBlank()) {
+            return null;
         }
-    }
-
-    private List<Message> getContextMessages(Long conversationId) {
-        List<Message> messages = messageRepository.findByConversation_IdOrderByCreatedAtAsc(conversationId);
-        return messages.size() > 20 ? messages.subList(messages.size() - 20, messages.size()) : messages;
-    }
-
-    private List<com.example.chatbot.dto.openai.Message> convertToOpenAiMessages(List<Message> messages) {
-        List<com.example.chatbot.dto.openai.Message> result = new ArrayList<>();
-        for (Message msg : messages) {
-            result.add(new com.example.chatbot.dto.openai.Message(msg.getRole().name(), msg.getContent()));
+        try {
+            return Long.parseLong(id);
+        } catch (NumberFormatException e) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "conversation_id는 숫자여야 합니다.");
         }
-        return result;
     }
 }

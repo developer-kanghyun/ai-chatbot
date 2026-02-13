@@ -8,7 +8,7 @@ import java.util.List;
 @Builder
 public class ChatRequest {
     private String model;
-    private List<Message> messages;
+    private List<OpenAiMessage> messages;
     @Builder.Default
     private boolean stream = false;
 }

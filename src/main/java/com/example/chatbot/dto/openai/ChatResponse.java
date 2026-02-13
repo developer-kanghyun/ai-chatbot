@@ -25,6 +25,6 @@ public class ChatResponse {
     @Getter
     @Setter
     public static class Choice {
-        private Message message;
+        private OpenAiMessage message;
     }
 }
