@@ -1,8 +1,8 @@
 -- message_role ENUM 타입 생성
 DO $$ BEGIN
-    CREATE TYPE message_role AS ENUM ('user', 'assistant');
-EXCEPTION
-    WHEN duplicate_object THEN null;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'message_role') THEN
+        CREATE TYPE message_role AS ENUM ('user', 'assistant');
+    END IF;
 END $$;;
 
 -- users 테이블

@@ -65,8 +65,8 @@ class ChatStreamIntegrationTest {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
-        registry.add("spring.data.redis.host", redis::getHost);
-        registry.add("spring.data.redis.port", () -> String.valueOf(redis.getMappedPort(6379)));
+        registry.add("spring.data.redis.url", () -> "redis://" + redis.getHost() + ":" + redis.getMappedPort(6379));
+        registry.add("spring.jpa.hibernate.ddl-auto", () -> "create-drop");
         registry.add("openai.api.url", () -> String.format("http://localhost:%d", mockBackEnd.getPort()));
     }
 
