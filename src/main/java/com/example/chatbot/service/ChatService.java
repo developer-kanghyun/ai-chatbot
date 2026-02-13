@@ -72,6 +72,7 @@ public class ChatService {
                 .subscribe(
                         content -> {
                             if (content != null) {
+                                gatheredContent.append(content);
                                 try {
                                     Object eventData = java.util.Objects.requireNonNull(java.util.Collections.singletonMap("text", content));
                                     emitter.send(SseEmitter.event()
